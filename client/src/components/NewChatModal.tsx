@@ -4,17 +4,12 @@ import React, { useState } from 'react';
 import { useAppStore } from '../lib/store';
 import { joinSocketRoom } from '../lib/socket';
 import { 
-  ShieldCheck, 
-  Lock, 
   UserPlus, 
   X, 
   Key, 
-  QrCode, 
-  Users, 
-  CheckCircle2,
-  Sparkles,
-  Link,
-  ArrowRight
+  Sparkles, 
+  Link, 
+  ArrowRight 
 } from 'lucide-react';
 
 interface NewChatModalProps {
@@ -23,10 +18,16 @@ interface NewChatModalProps {
 }
 
 export const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose }) => {
-  const { conversations, setConversations, setActiveConversationId, currentUser, setIsMobileSidebarOpen } = useAppStore();
-  const [tab, setTab] = useState<'DIRECTORY' | 'ROOM_CODE' | 'RAW_KEY'>('ROOM_CODE');
+  const { 
+    conversations, 
+    setConversations, 
+    setActiveConversationId, 
+    currentUser, 
+    setIsMobileSidebarOpen,
+    setActiveTab 
+  } = useAppStore();
   
-  // State
+  const [tab, setTab] = useState<'ROOM_CODE' | 'RAW_KEY'>('ROOM_CODE');
   const [roomCodeInput, setRoomCodeInput] = useState('');
   const [friendNameInput, setFriendNameInput] = useState('');
   const [rawIdentityKey, setRawIdentityKey] = useState('');
@@ -35,24 +36,24 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose }) =
 
   if (!isOpen) return null;
 
-  // Handle Joining Room Code
+  // Handle Joining Exact Room Code
   const handleJoinRoomCode = (e: React.FormEvent) => {
     e.preventDefault();
-    const code = roomCodeInput.trim();
-    if (!code) {
-      setErrorMsg('Please enter a valid Room Code or Shareable Link ID.');
+    const rawCode = roomCodeInput.trim();
+    if (!rawCode) {
+      setErrorMsg('Please enter a valid Room Code (e.g. room_8492 or conv_alice_bob).');
       return;
     }
 
+    const targetRoomId = rawCode;
     const friendName = friendNameInput.trim() || 'Friend';
-    const newRoomId = code.startsWith('conv_') ? code : `conv_${code}`;
 
-    const exists = conversations.some(c => c.id === newRoomId);
+    const exists = conversations.some(c => c.id === targetRoomId);
     if (!exists) {
       const newConv = {
-        id: newRoomId,
+        id: targetRoomId,
         type: 'DIRECT' as const,
-        title: `${friendName} (${code.substring(0, 8)})`,
+        title: `${friendName} (${targetRoomId})`,
         description: 'End-to-End Encrypted Live Session',
         avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
         isEncrypted: true,
@@ -65,15 +66,18 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose }) =
       setConversations([newConv, ...conversations]);
     }
 
-    setActiveConversationId(newRoomId);
+    // Connect & Switch
+    setActiveConversationId(targetRoomId);
+    setActiveTab('CHAT');
     setIsMobileSidebarOpen(false);
-    joinSocketRoom(newRoomId);
+    joinSocketRoom(targetRoomId);
 
-    setSuccessMsg(`Joined room ${code}! Real-time E2EE relay active.`);
+    setSuccessMsg(`Joined room ${targetRoomId}! Real-time E2EE session active.`);
     setTimeout(() => {
       setSuccessMsg('');
+      setErrorMsg('');
       onClose();
-    }, 600);
+    }, 500);
   };
 
   return (
@@ -86,8 +90,8 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose }) =
               <UserPlus className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-base text-white">Start E2EE Chat / Join Room</h3>
-              <p className="text-xs text-slate-400">Zero-Knowledge Key Handshake</p>
+              <h3 className="font-bold text-base text-white">Join Room Code</h3>
+              <p className="text-xs text-slate-400 font-mono">Instant Real-Time E2EE Session</p>
             </div>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white">
@@ -106,7 +110,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose }) =
             }`}
           >
             <Link className="w-4 h-4 text-cyan-400" />
-            Join Room Code
+            Enter Room Code
           </button>
 
           <button
@@ -139,17 +143,18 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose }) =
         {tab === 'ROOM_CODE' && (
           <form onSubmit={handleJoinRoomCode} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Room Code or Invite Link ID</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Room Code (Exact Match)</label>
               <input
                 type="text"
-                placeholder="e.g. conv_alice_bob or room_9824"
+                placeholder="e.g. room_8492 or conv_alice_bob"
                 value={roomCodeInput}
                 onChange={(e) => setRoomCodeInput(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-cyan-500/50 font-mono"
                 required
+                autoFocus
               />
               <p className="text-[11px] text-slate-400 mt-1">
-                Enter the Room Code shared by your friend to join their real-time session.
+                Enter the exact Room Code (e.g. <span className="text-cyan-300 font-mono">room_8492</span>) shared by your friend.
               </p>
             </div>
 
@@ -168,7 +173,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose }) =
               type="submit"
               className="w-full py-3 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:opacity-95 text-white font-bold text-xs rounded-xl shadow-glow transition-all flex items-center justify-center gap-2"
             >
-              <span>Join Real-Time Room</span>
+              <span>Join Chat Room Now</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
@@ -181,7 +186,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose }) =
               <label className="block text-xs font-semibold text-slate-300 mb-1">Ed25519 / X25519 Public Key Base64</label>
               <textarea
                 rows={3}
-                placeholder="Paste friend's public key (e.g. MCowBQYDK2VwAyEA...)"
+                placeholder="Paste friend's public key..."
                 value={rawIdentityKey}
                 onChange={(e) => setRawIdentityKey(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 p-3 rounded-xl focus:outline-none focus:border-purple-500/50 font-mono"
@@ -189,7 +194,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose }) =
             </div>
             <button
               onClick={() => {
-                setSuccessMsg('Key imported & verified! X25519 session active.');
+                setSuccessMsg('Key imported & verified! Session active.');
                 setTimeout(() => onClose(), 600);
               }}
               className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold text-xs rounded-xl shadow-glow"
