@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../lib/store';
 import { NewChatModal } from './NewChatModal';
+import { joinSocketRoom } from '../lib/socket';
 import { 
   ShieldCheck, 
   MessageSquare, 
@@ -14,13 +15,19 @@ import {
   Users, 
   Radio, 
   UserCheck,
-  UserPlus
+  UserPlus,
+  Share2,
+  Copy,
+  Check,
+  X,
+  QrCode
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
   const { 
     currentUser, 
     conversations, 
+    setConversations,
     activeConversationId, 
     setActiveConversationId,
     activeTab, 
@@ -33,6 +40,8 @@ export const Sidebar: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewChatModal, setShowNewChatModal] = useState(false);
+  const [shareModal, setShareModal] = useState<{ roomCode: string; inviteUrl: string } | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const filteredConversations = conversations.filter(c => 
     c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -43,6 +52,46 @@ export const Sidebar: React.FC = () => {
   const groupChats = filteredConversations.filter(c => c.type === 'GROUP');
   const channels = filteredConversations.filter(c => c.type === 'CHANNEL' || c.type === 'COMMUNITY');
 
+  // 1-Click Instant Room Creation for Friends
+  const handleCreateInstantFriendRoom = () => {
+    const randomCode = Math.floor(1000 + Math.random() * 9000);
+    const roomId = `room_${randomCode}`;
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    const inviteUrl = `${origin}/?room=${roomId}`;
+
+    const newConv = {
+      id: roomId,
+      type: 'DIRECT' as const,
+      title: `Live Room #${randomCode}`,
+      description: 'End-to-End Encrypted Friend Session',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      isEncrypted: true,
+      updatedAt: new Date().toISOString(),
+      members: [
+        { id: 'm1', userId: currentUser.id, username: currentUser.username, fullName: currentUser.fullName, role: 'ADMIN', isOnline: true },
+        { id: 'm2', userId: `usr_friend_${randomCode}`, username: 'friend', fullName: 'Friend', role: 'MEMBER', isOnline: true }
+      ]
+    };
+
+    setConversations([newConv, ...conversations]);
+    setActiveConversationId(roomId);
+    setIsMobileSidebarOpen(false);
+    joinSocketRoom(roomId);
+
+    setShareModal({
+      roomCode: `room_${randomCode}`,
+      inviteUrl
+    });
+  };
+
+  const handleCopyLink = (url: string) => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url);
+    }
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 3000);
+  };
+
   return (
     <>
       <aside 
@@ -50,7 +99,7 @@ export const Sidebar: React.FC = () => {
           isMobileSidebarOpen ? 'fixed inset-0 md:relative' : 'hidden md:flex'
         }`}
       >
-        {/* Brand & Top Header */}
+        {/* Brand Header */}
         <div className="p-3.5 md:p-4 border-b border-slate-800/60 flex items-center justify-between bg-slate-950/80">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
@@ -80,7 +129,7 @@ export const Sidebar: React.FC = () => {
           </button>
         </div>
 
-        {/* Main Navigation Tabs */}
+        {/* Navigation Tabs */}
         <div className="p-2 border-b border-slate-800/60 grid grid-cols-4 gap-1 bg-slate-950/60">
           <button
             onClick={() => { setActiveTab('CHAT'); setIsMobileSidebarOpen(true); }}
@@ -131,36 +180,47 @@ export const Sidebar: React.FC = () => {
           </button>
         </div>
 
-        {/* Search & Add Key Button Bar */}
+        {/* 1-Click Action Buttons */}
         <div className="p-3 space-y-2">
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-            <input
-              type="text"
-              placeholder="Search chats..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-900/80 border border-slate-800 text-sm text-slate-200 placeholder-slate-500 pl-9 pr-8 py-2 rounded-xl focus:outline-none focus:border-cyan-500/50 transition-all"
-            />
-          </div>
-
+          {/* Big Glowing "Create Room for Friends" Button */}
           <button
-            onClick={() => setShowNewChatModal(true)}
-            className="w-full py-2.5 px-3 bg-gradient-to-r from-cyan-500/20 via-indigo-500/20 to-purple-500/20 hover:from-cyan-500/30 hover:to-purple-500/30 border border-cyan-500/40 text-cyan-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-glow active:scale-95"
+            onClick={handleCreateInstantFriendRoom}
+            className="w-full py-3 px-4 bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:opacity-95 text-white rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-2 shadow-glow active:scale-95 tracking-wide"
           >
-            <UserPlus className="w-4 h-4 text-cyan-400" />
-            Add Key / Start E2EE Chat
+            <Share2 className="w-4 h-4 text-cyan-200" />
+            <span>🚀 Create Room & Invite Friend</span>
           </button>
+
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                placeholder="Search chats..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-slate-900/80 border border-slate-800 text-xs text-slate-200 placeholder-slate-500 pl-9 pr-3 py-2 rounded-xl focus:outline-none focus:border-cyan-500/50"
+              />
+            </div>
+
+            <button
+              onClick={() => setShowNewChatModal(true)}
+              className="p-2 bg-slate-900 border border-slate-800 text-cyan-400 hover:text-white rounded-xl text-xs font-semibold shrink-0"
+              title="Join Room Code"
+            >
+              <UserPlus className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Conversation List */}
         <div className="flex-1 overflow-y-auto px-2 space-y-4 pb-20 md:pb-4">
-          {/* Direct Messages Section */}
+          {/* Direct Messages */}
           <div>
             <div className="flex items-center justify-between px-3 py-1 text-xs font-semibold text-slate-400 uppercase tracking-wider">
               <span className="flex items-center gap-1.5">
                 <UserCheck className="w-3.5 h-3.5 text-cyan-400" />
-                Private Encrypted ({directMsgs.length})
+                Active Sessions ({directMsgs.length})
               </span>
             </div>
             <div className="space-y-1 mt-1">
@@ -196,7 +256,7 @@ export const Sidebar: React.FC = () => {
                         <Lock className="w-3 h-3 text-cyan-400 shrink-0" />
                       </div>
                       <p className="text-xs text-slate-400 truncate mt-0.5">
-                        {conv.description || 'X25519 Double Ratchet Tunnel'}
+                        {conv.description || 'Live Encrypted Session'}
                       </p>
                     </div>
                   </button>
@@ -205,7 +265,7 @@ export const Sidebar: React.FC = () => {
             </div>
           </div>
 
-          {/* Encrypted Groups Section */}
+          {/* Groups */}
           <div>
             <div className="flex items-center justify-between px-3 py-1 text-xs font-semibold text-slate-400 uppercase tracking-wider">
               <span className="flex items-center gap-1.5">
@@ -236,60 +296,11 @@ export const Sidebar: React.FC = () => {
                       className="w-10 h-10 rounded-xl object-cover ring-2 ring-slate-700 shrink-0"
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-semibold text-slate-100 truncate">
-                          {conv.title}
-                        </h4>
-                        {conv.unreadCount ? (
-                          <span className="px-1.5 py-0.5 text-[10px] font-bold bg-purple-500 text-white rounded-full">
-                            {conv.unreadCount}
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="text-xs text-slate-400 truncate mt-0.5">
-                        {conv.description || 'Megolm Group Sender Key'}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Public Channels Section */}
-          <div>
-            <div className="flex items-center justify-between px-3 py-1 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-              <span className="flex items-center gap-1.5">
-                <Radio className="w-3.5 h-3.5 text-emerald-400" />
-                Channels & Broadcasts ({channels.length})
-              </span>
-            </div>
-            <div className="space-y-1 mt-1">
-              {channels.map((conv) => {
-                const isActive = activeConversationId === conv.id && activeTab === 'CHAT';
-                return (
-                  <button
-                    key={conv.id}
-                    onClick={() => {
-                      setActiveConversationId(conv.id);
-                      setActiveTab('CHAT');
-                      setIsMobileSidebarOpen(false);
-                    }}
-                    className={`w-full p-3 rounded-xl flex items-center gap-3 transition-all text-left active:scale-[0.98] ${
-                      isActive 
-                        ? 'bg-emerald-500/20 border border-emerald-500/40 text-white' 
-                        : 'bg-slate-900/40 hover:bg-slate-800/60 text-slate-300 border border-slate-800/60'
-                    }`}
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-sm shrink-0">
-                      #
-                    </div>
-                    <div className="flex-1 min-w-0">
                       <h4 className="text-sm font-semibold text-slate-100 truncate">
                         {conv.title}
                       </h4>
                       <p className="text-xs text-slate-400 truncate mt-0.5">
-                        {conv.description || 'Broadcast Channel'}
+                        {conv.description || 'Megolm Group Key'}
                       </p>
                     </div>
                   </button>
@@ -330,6 +341,68 @@ export const Sidebar: React.FC = () => {
           </button>
         </div>
       </aside>
+
+      {/* Share Room Modal */}
+      {shareModal && (
+        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="max-w-md w-full glass-panel border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4 relative animate-in fade-in duration-200">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="font-bold text-base text-white flex items-center gap-2">
+                <span className="text-cyan-400">🚀</span>
+                Room Created! Invite Your Friend
+              </h3>
+              <button onClick={() => setShareModal(null)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300">
+              Send this share link or Room Code to your friend. When they open it, you will connect in real-time!
+            </p>
+
+            <div className="space-y-3 bg-slate-950 p-4 rounded-2xl border border-cyan-500/30">
+              <div>
+                <label className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider block mb-1">
+                  1-Click Shareable Invitation Link
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={shareModal.inviteUrl}
+                    className="flex-1 bg-slate-900 border border-slate-800 text-xs text-cyan-300 px-3 py-2 rounded-xl font-mono truncate"
+                  />
+                  <button
+                    onClick={() => handleCopyLink(shareModal.inviteUrl)}
+                    className="px-3 py-2 bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs font-bold rounded-xl hover:bg-cyan-500/30 shrink-0 flex items-center gap-1.5"
+                  >
+                    {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                    <span>{copiedLink ? 'Copied!' : 'Copy'}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-800 pt-2 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Or Room Code</span>
+                  <span className="font-mono text-sm font-bold text-white tracking-widest">{shareModal.roomCode}</span>
+                </div>
+                <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  E2EE Active
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShareModal(null)}
+              className="w-full py-3 bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-bold text-xs rounded-xl shadow-glow"
+            >
+              Start Chatting Now
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* New Chat Modal */}
       <NewChatModal 
