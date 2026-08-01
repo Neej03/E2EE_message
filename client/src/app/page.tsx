@@ -2,7 +2,6 @@
 
 import React, { useEffect } from 'react';
 import { useAppStore } from '../lib/store';
-import { getSocket } from '../lib/socket';
 import { Sidebar } from '../components/Sidebar';
 import { ChatCanvas } from '../components/ChatCanvas';
 import { CallModal } from '../components/CallModal';
@@ -10,170 +9,130 @@ import { SecurityVaultModal } from '../components/SecurityVaultModal';
 import { PricingModal } from '../components/PricingModal';
 import { AdminConsole } from '../components/AdminConsole';
 import { AiAssistantDrawer } from '../components/AiAssistantDrawer';
+import { getSocket } from '../lib/socket';
 
 export default function Home() {
   const { 
     currentUser, 
     setConversations, 
-    setMessages, 
-    addMessage, 
     activeTab, 
-    activeConversationId,
-    startCall
+    activeCall,
+    safetyNumberModal,
+    closeSafetyNumberModal,
+    isMobileSidebarOpen
   } = useAppStore();
 
   useEffect(() => {
-    // Fetch initial conversations from backend API with fallback
-    const API_URL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:5000';
-    
-    fetch(`${API_URL}/api/v1/conversations`, {
-      headers: { 'Authorization': 'Bearer demo-token' }
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setConversations(data);
-        } else {
-          // Fallback mock conversations
-          const defaultConvs = [
-            {
-              id: 'conv_alice_bob',
-              type: 'DIRECT' as const,
-              title: 'Bob Sterling (Encrypted DM)',
-              description: 'X25519 Double Ratchet Tunnel',
-              avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-              isEncrypted: true,
-              updatedAt: new Date().toISOString(),
-              members: [
-                { id: 'm1', userId: 'usr_alice', username: 'alice_sec', fullName: 'Alice Vance', role: 'ADMIN', isOnline: true },
-                { id: 'm2', userId: 'usr_bob', username: 'bob_builder', fullName: 'Bob Sterling', role: 'MEMBER', isOnline: true }
-              ]
-            },
-            {
-              id: 'conv_sec_team',
-              type: 'GROUP' as const,
-              title: '🛡️ Core Security Architecture',
-              description: 'Zero-trust group key management',
-              avatar: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=150&auto=format&fit=crop&q=80',
-              isEncrypted: true,
-              updatedAt: new Date().toISOString(),
-              members: [
-                { id: 'm3', userId: 'usr_alice', username: 'alice_sec', fullName: 'Alice Vance', role: 'OWNER', isOnline: true },
-                { id: 'm4', userId: 'usr_bob', username: 'bob_builder', fullName: 'Bob Sterling', role: 'ADMIN', isOnline: true },
-                { id: 'm5', userId: 'usr_carol', username: 'carol_crypto', fullName: 'Carol Zhang', role: 'MEMBER', isOnline: false }
-              ]
-            },
-            {
-              id: 'conv_announcements',
-              type: 'CHANNEL' as const,
-              title: '📢 System Announcements',
-              description: 'Platform updates & protocol releases',
-              avatar: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=150&auto=format&fit=crop&q=80',
-              isEncrypted: false,
-              updatedAt: new Date().toISOString(),
-              members: []
-            },
-            {
-              id: 'conv_ai_direct',
-              type: 'DIRECT' as const,
-              title: '🤖 Cipher AI Assistant',
-              description: 'Autonomous E2EE Companion',
-              avatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80',
-              isEncrypted: true,
-              updatedAt: new Date().toISOString(),
-              members: [
-                { id: 'm9', userId: 'usr_alice', username: 'alice_sec', fullName: 'Alice Vance', role: 'OWNER', isOnline: true },
-                { id: 'm10', userId: 'usr_ai_assistant', username: 'cipher_ai', fullName: 'Cipher AI Assistant', role: 'MEMBER', isOnline: true }
-              ]
-            }
-          ];
-          setConversations(defaultConvs);
-        }
-      })
-      .catch(() => {
-        // Network fallback
-        setConversations([
-          {
-            id: 'conv_alice_bob',
-            type: 'DIRECT',
-            title: 'Bob Sterling (Encrypted DM)',
-            description: 'X25519 Double Ratchet Tunnel',
-            avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-            isEncrypted: true,
-            updatedAt: new Date().toISOString(),
-            members: [
-              { id: 'm1', userId: 'usr_alice', username: 'alice_sec', fullName: 'Alice Vance', role: 'ADMIN', isOnline: true },
-              { id: 'm2', userId: 'usr_bob', username: 'bob_builder', fullName: 'Bob Sterling', role: 'MEMBER', isOnline: true }
-            ]
-          }
-        ]);
-      });
-
-    // Seed Initial Messages for conv_alice_bob
-    setMessages('conv_alice_bob', [
+    // Initial mock conversations
+    setConversations([
       {
-        id: 'msg_1',
-        conversationId: 'conv_alice_bob',
-        senderId: 'usr_alice',
-        messageType: 'TEXT',
-        ciphertext: 'EncryptedPayload_Alice_Bob_1_X25519_DoubleRatchet_PayloadString==',
-        iv: 'a1b2c3d4e5f67890',
-        createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-        isDecrypted: true,
-        decryptedText: 'Hey Bob! The X25519 identity key rotation and Double Ratchet algorithm are fully verified on our client.'
+        id: 'conv_alice_bob',
+        type: 'DIRECT',
+        title: 'Bob Sterling (Lead Architect)',
+        description: 'Double Ratchet Session Active • X25519 Verified',
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+        isEncrypted: true,
+        unreadCount: 0,
+        updatedAt: new Date().toISOString(),
+        members: [
+          { id: 'm1', userId: 'usr_alice', username: 'alice_sec', fullName: 'Alice Vance', role: 'ADMIN', isOnline: true },
+          { id: 'm2', userId: 'usr_bob', username: 'bob_builder', fullName: 'Bob Sterling', role: 'MEMBER', isOnline: true }
+        ]
       },
       {
-        id: 'msg_2',
-        conversationId: 'conv_alice_bob',
-        senderId: 'usr_bob',
-        messageType: 'TEXT',
-        ciphertext: 'EncryptedPayload_Bob_Alice_2_RatchetStep_AES256GCM_OK==',
-        iv: 'b2c3d4e5f67890a1',
-        createdAt: new Date(Date.now() - 3600000 * 1).toISOString(),
-        isDecrypted: true,
-        decryptedText: 'Awesome Alice! AES-256-GCM authenticated tags match. Let\'s test a WebRTC video call.'
+        id: 'conv_alice_carol',
+        type: 'DIRECT',
+        title: 'Carol Zhang (Security Auditor)',
+        description: 'Zero-Knowledge Vault Handshake Complete',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        isEncrypted: true,
+        unreadCount: 1,
+        updatedAt: new Date().toISOString(),
+        members: [
+          { id: 'm1', userId: 'usr_alice', username: 'alice_sec', fullName: 'Alice Vance', role: 'ADMIN', isOnline: true },
+          { id: 'm3', userId: 'usr_carol', username: 'carol_crypto', fullName: 'Carol Zhang', role: 'MEMBER', isOnline: false }
+        ]
+      },
+      {
+        id: 'conv_group_sec',
+        type: 'GROUP',
+        title: '🛡️ Core Security Taskforce',
+        description: 'Megolm Group Sender Key Session • 8 Devices',
+        avatar: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=150&auto=format&fit=crop&q=80',
+        isEncrypted: true,
+        unreadCount: 3,
+        updatedAt: new Date().toISOString(),
+        members: [
+          { id: 'm1', userId: 'usr_alice', username: 'alice_sec', fullName: 'Alice Vance', role: 'ADMIN', isOnline: true },
+          { id: 'm2', userId: 'usr_bob', username: 'bob_builder', fullName: 'Bob Sterling', role: 'MEMBER', isOnline: true },
+          { id: 'm3', userId: 'usr_carol', username: 'carol_crypto', fullName: 'Carol Zhang', role: 'MEMBER', isOnline: false }
+        ]
+      },
+      {
+        id: 'conv_channel_announcements',
+        type: 'CHANNEL',
+        title: 'CipherPulse Protocol Release Feed',
+        description: 'Signed Ephemeral Identity Key Updates',
+        avatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80',
+        isEncrypted: true,
+        unreadCount: 0,
+        updatedAt: new Date().toISOString(),
+        members: []
       }
     ]);
 
-    // Connect to Real-time Socket.IO Server
-    const socket = getSocket(currentUser.id, 'dev_alice_1');
-
-    socket.on('new_e2ee_message', (msg: any) => {
-      addMessage(msg.conversationId, {
-        ...msg,
-        isDecrypted: true,
-        decryptedText: msg.ciphertext
-      });
-    });
-
-    socket.on('call_offer_received', (data: any) => {
-      startCall(data.conversationId, 'Incoming Encrypted WebRTC Call', data.type || 'VIDEO');
-    });
-
-    return () => {
-      socket.off('new_e2ee_message');
-      socket.off('call_offer_received');
-    };
-  }, []);
+    // Socket.IO Connection
+    if (currentUser?.id) {
+      getSocket(currentUser.id);
+    }
+  }, [currentUser?.id, setConversations]);
 
   return (
-    <main className="flex h-screen w-screen overflow-hidden bg-[#090d16] text-slate-100">
+    <main className="h-screen w-screen bg-slate-950 text-slate-100 flex overflow-hidden font-sans relative">
       {/* Sidebar Navigation */}
       <Sidebar />
 
-      {/* Main Content Area based on Active Tab */}
-      <div className="flex-1 h-screen flex flex-col min-w-0">
+      {/* Main Content Area (Responsive) */}
+      <div 
+        className={`flex-1 h-screen flex flex-col min-w-0 ${
+          isMobileSidebarOpen ? 'hidden md:flex' : 'flex'
+        }`}
+      >
         {activeTab === 'CHAT' && <ChatCanvas />}
         {activeTab === 'SECURITY' && <SecurityVaultModal />}
         {activeTab === 'PRICING' && <PricingModal />}
         {activeTab === 'ADMIN' && <AdminConsole />}
       </div>
 
-      {/* Slide-out AI Companion Drawer */}
+      {/* AI Assistant Drawer */}
       <AiAssistantDrawer />
 
-      {/* WebRTC Audio/Video Fullscreen Call Modal */}
-      <CallModal />
+      {/* WebRTC Video / Voice Call Modal */}
+      {activeCall && <CallModal />}
+
+      {/* Safety Number Verification Dialog */}
+      {safetyNumberModal.isOpen && (
+        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="max-w-md w-full glass-panel border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4">
+            <h3 className="font-bold text-base text-white flex items-center gap-2">
+              <span className="text-cyan-400">🔑</span>
+              Verify Safety Numbers (60-Digit Fingerprint)
+            </h3>
+            <p className="text-xs text-slate-400">
+              Compare this numeric fingerprint with {safetyNumberModal.peerUser?.fullName || 'the recipient'} in person or via an out-of-band channel to confirm End-to-End Encryption integrity.
+            </p>
+            <div className="p-4 bg-slate-950 border border-cyan-500/30 rounded-2xl font-mono text-xs text-cyan-300 text-center tracking-widest break-all">
+              3901 8492 1049 5820 9104 2948 1048 5920 1940 5829 1049 4820
+            </div>
+            <button
+              onClick={closeSafetyNumberModal}
+              className="w-full py-2.5 bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-bold text-xs rounded-xl shadow-glow"
+            >
+              Verify & Match Safety Number
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

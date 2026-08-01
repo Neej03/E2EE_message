@@ -26,7 +26,9 @@ export const Sidebar: React.FC = () => {
     activeTab, 
     setActiveTab, 
     toggleAiDrawer,
-    aiDrawerOpen 
+    aiDrawerOpen,
+    isMobileSidebarOpen,
+    setIsMobileSidebarOpen
   } = useAppStore();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -43,7 +45,11 @@ export const Sidebar: React.FC = () => {
 
   return (
     <>
-      <aside className="w-80 h-screen glass-panel flex flex-col border-r border-slate-800/60 select-none z-20 shrink-0">
+      <aside 
+        className={`w-full md:w-80 h-screen glass-panel flex flex-col border-r border-slate-800/60 select-none z-20 shrink-0 ${
+          isMobileSidebarOpen ? 'block' : 'hidden md:flex'
+        }`}
+      >
         {/* Brand & Top Header */}
         <div className="p-4 border-b border-slate-800/60 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -77,7 +83,7 @@ export const Sidebar: React.FC = () => {
         {/* Main Navigation Tabs */}
         <div className="p-2 border-b border-slate-800/60 grid grid-cols-4 gap-1 bg-slate-950/40">
           <button
-            onClick={() => setActiveTab('CHAT')}
+            onClick={() => { setActiveTab('CHAT'); setIsMobileSidebarOpen(true); }}
             className={`flex flex-col items-center gap-1 py-2 px-1 rounded-lg text-xs font-medium transition-all ${
               activeTab === 'CHAT'
                 ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30'
@@ -89,7 +95,7 @@ export const Sidebar: React.FC = () => {
           </button>
 
           <button
-            onClick={() => setActiveTab('SECURITY')}
+            onClick={() => { setActiveTab('SECURITY'); setIsMobileSidebarOpen(false); }}
             className={`flex flex-col items-center gap-1 py-2 px-1 rounded-lg text-xs font-medium transition-all ${
               activeTab === 'SECURITY'
                 ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
@@ -101,7 +107,7 @@ export const Sidebar: React.FC = () => {
           </button>
 
           <button
-            onClick={() => setActiveTab('PRICING')}
+            onClick={() => { setActiveTab('PRICING'); setIsMobileSidebarOpen(false); }}
             className={`flex flex-col items-center gap-1 py-2 px-1 rounded-lg text-xs font-medium transition-all ${
               activeTab === 'PRICING'
                 ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
@@ -113,7 +119,7 @@ export const Sidebar: React.FC = () => {
           </button>
 
           <button
-            onClick={() => setActiveTab('ADMIN')}
+            onClick={() => { setActiveTab('ADMIN'); setIsMobileSidebarOpen(false); }}
             className={`flex flex-col items-center gap-1 py-2 px-1 rounded-lg text-xs font-medium transition-all ${
               activeTab === 'ADMIN'
                 ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30'
@@ -140,7 +146,7 @@ export const Sidebar: React.FC = () => {
 
           <button
             onClick={() => setShowNewChatModal(true)}
-            className="w-full py-2 px-3 bg-gradient-to-r from-cyan-500/20 via-indigo-500/20 to-purple-500/20 hover:from-cyan-500/30 hover:to-purple-500/30 border border-cyan-500/40 text-cyan-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-glow"
+            className="w-full py-2.5 px-3 bg-gradient-to-r from-cyan-500/20 via-indigo-500/20 to-purple-500/20 hover:from-cyan-500/30 hover:to-purple-500/30 border border-cyan-500/40 text-cyan-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-glow"
           >
             <UserPlus className="w-4 h-4 text-cyan-400" />
             Add Key / Start E2EE Chat
@@ -166,6 +172,7 @@ export const Sidebar: React.FC = () => {
                     onClick={() => {
                       setActiveConversationId(conv.id);
                       setActiveTab('CHAT');
+                      setIsMobileSidebarOpen(false);
                     }}
                     className={`w-full p-2.5 rounded-xl flex items-center gap-3 transition-all text-left group ${
                       isActive 
@@ -215,6 +222,7 @@ export const Sidebar: React.FC = () => {
                     onClick={() => {
                       setActiveConversationId(conv.id);
                       setActiveTab('CHAT');
+                      setIsMobileSidebarOpen(false);
                     }}
                     className={`w-full p-2.5 rounded-xl flex items-center gap-3 transition-all text-left group ${
                       isActive 
@@ -265,6 +273,7 @@ export const Sidebar: React.FC = () => {
                     onClick={() => {
                       setActiveConversationId(conv.id);
                       setActiveTab('CHAT');
+                      setIsMobileSidebarOpen(false);
                     }}
                     className={`w-full p-2.5 rounded-xl flex items-center gap-3 transition-all text-left group ${
                       isActive 
@@ -290,7 +299,7 @@ export const Sidebar: React.FC = () => {
           </div>
         </div>
 
-        {/* User Footer Active Profile Badge (No Auth Required) */}
+        {/* User Footer Active Profile Badge */}
         <div className="p-3 border-t border-slate-800/60 bg-slate-950/60 flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="relative">
@@ -313,7 +322,7 @@ export const Sidebar: React.FC = () => {
           </div>
 
           <button 
-            onClick={() => setActiveTab('SECURITY')}
+            onClick={() => { setActiveTab('SECURITY'); setIsMobileSidebarOpen(false); }}
             className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-slate-800/60 transition-all"
             title="Key Security Settings"
           >

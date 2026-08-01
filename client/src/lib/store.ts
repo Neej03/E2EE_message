@@ -69,6 +69,7 @@ interface AppState {
   messages: Record<string, Message[]>;
   activeTab: 'CHAT' | 'SECURITY' | 'PRICING' | 'ADMIN';
   aiDrawerOpen: boolean;
+  isMobileSidebarOpen: boolean;
   activeCall: CallState | null;
   safetyNumberModal: { isOpen: boolean; peerUser: any | null };
   
@@ -80,6 +81,7 @@ interface AppState {
   addMessage: (conversationId: string, message: Message) => void;
   setActiveTab: (tab: 'CHAT' | 'SECURITY' | 'PRICING' | 'ADMIN') => void;
   toggleAiDrawer: () => void;
+  setIsMobileSidebarOpen: (isOpen: boolean) => void;
   startCall: (conversationId: string, title: string, type: 'AUDIO' | 'VIDEO') => void;
   endCall: () => void;
   updateCallState: (updates: Partial<CallState>) => void;
@@ -104,12 +106,13 @@ export const useAppStore = create<AppState>((set) => ({
   messages: {},
   activeTab: 'CHAT',
   aiDrawerOpen: false,
+  isMobileSidebarOpen: true,
   activeCall: null,
   safetyNumberModal: { isOpen: false, peerUser: null },
 
   setCurrentUser: (user) => set({ currentUser: user }),
   setConversations: (conversations) => set({ conversations }),
-  setActiveConversationId: (id) => set({ activeConversationId: id }),
+  setActiveConversationId: (id) => set({ activeConversationId: id, isMobileSidebarOpen: false }),
   setMessages: (conversationId, msgs) => 
     set((state) => ({ messages: { ...state.messages, [conversationId]: msgs } })),
   addMessage: (conversationId, msg) =>
@@ -124,6 +127,7 @@ export const useAppStore = create<AppState>((set) => ({
     }),
   setActiveTab: (tab) => set({ activeTab: tab }),
   toggleAiDrawer: () => set((state) => ({ aiDrawerOpen: !state.aiDrawerOpen })),
+  setIsMobileSidebarOpen: (isOpen) => set({ isMobileSidebarOpen: isOpen }),
   startCall: (conversationId, title, type) =>
     set({
       activeCall: {
