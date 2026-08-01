@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../lib/store';
 import { NewChatModal } from './NewChatModal';
-import { AuthModal } from './AuthModal';
 import { 
   ShieldCheck, 
   MessageSquare, 
@@ -15,9 +14,7 @@ import {
   Users, 
   Radio, 
   UserCheck,
-  UserPlus,
-  LogIn,
-  LogOut
+  UserPlus
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -34,7 +31,6 @@ export const Sidebar: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewChatModal, setShowNewChatModal] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const filteredConversations = conversations.filter(c => 
     c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -294,40 +290,35 @@ export const Sidebar: React.FC = () => {
           </div>
         </div>
 
-        {/* User Footer Profile Badge & Auth Trigger */}
+        {/* User Footer Active Profile Badge (No Auth Required) */}
         <div className="p-3 border-t border-slate-800/60 bg-slate-950/60 flex items-center justify-between">
-          <div 
-            onClick={() => setShowAuthModal(true)}
-            className="flex items-center gap-2.5 min-w-0 cursor-pointer group"
-          >
+          <div className="flex items-center gap-2.5 min-w-0">
             <div className="relative">
               <img 
                 src={currentUser.avatar} 
                 alt={currentUser.fullName} 
-                className="w-9 h-9 rounded-full object-cover ring-2 ring-cyan-500/40 group-hover:ring-cyan-400 transition-all"
+                className="w-9 h-9 rounded-full object-cover ring-2 ring-cyan-500/40"
               />
               <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-slate-950"></span>
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <h4 className="text-xs font-semibold text-slate-100 truncate group-hover:text-cyan-300">{currentUser.fullName}</h4>
+                <h4 className="text-xs font-semibold text-slate-100 truncate">{currentUser.fullName}</h4>
                 <span className="px-1.5 py-0.5 text-[9px] font-extrabold bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-md tracking-wider">
                   {currentUser.plan}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 truncate">@{currentUser.username}</p>
+              <p className="text-[11px] text-emerald-400 truncate font-mono">🔐 Session Active</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1">
-            <button 
-              onClick={() => setShowAuthModal(true)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-slate-800/60 transition-all"
-              title="Sign In / Switch Account"
-            >
-              <LogIn className="w-4 h-4" />
-            </button>
-          </div>
+          <button 
+            onClick={() => setActiveTab('SECURITY')}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-slate-800/60 transition-all"
+            title="Key Security Settings"
+          >
+            <Lock className="w-4 h-4" />
+          </button>
         </div>
       </aside>
 
@@ -335,12 +326,6 @@ export const Sidebar: React.FC = () => {
       <NewChatModal 
         isOpen={showNewChatModal} 
         onClose={() => setShowNewChatModal(false)} 
-      />
-
-      {/* Authentication Modal */}
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
       />
     </>
   );
