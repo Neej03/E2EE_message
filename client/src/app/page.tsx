@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAppStore, Conversation } from '../lib/store';
 import { Sidebar } from '../components/Sidebar';
 import { ChatCanvas } from '../components/ChatCanvas';
@@ -10,6 +10,7 @@ import { PricingModal } from '../components/PricingModal';
 import { AdminConsole } from '../components/AdminConsole';
 import { AiAssistantDrawer } from '../components/AiAssistantDrawer';
 import { getSocket, joinSocketRoom } from '../lib/socket';
+import { Lock, ArrowRight, UserCheck } from 'lucide-react';
 
 export default function Home() {
   const { 
@@ -22,8 +23,11 @@ export default function Home() {
     closeSafetyNumberModal,
     isMobileSidebarOpen,
     setActiveConversationId,
-    setIsMobileSidebarOpen
+    setIsMobileSidebarOpen,
+    setCurrentUser
   } = useAppStore();
+
+  const [guestPromptModal, setGuestPromptModal] = useState<{ roomId: string; friendName: string } | null>(null);
 
   useEffect(() => {
     // Initial mock conversations
@@ -73,7 +77,7 @@ export default function Home() {
       }
     ];
 
-    // Detect Shareable Room URL Parameter (?room=...)
+    // Detect Shareable Room URL Parameter (?room=... or ?invite=...)
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const sharedRoomId = urlParams.get('room') || urlParams.get('invite');
@@ -84,8 +88,8 @@ export default function Home() {
           initialConvs.unshift({
             id: sharedRoomId,
             type: 'DIRECT',
-            title: `Shared Encrypted Session (${sharedRoomId.substring(0, 10)})`,
-            description: 'Joined via Shareable Link • End-to-End Encrypted',
+            title: `Shared Session (${sharedRoomId.substring(0, 10)})`,
+            description: 'Joined via Shareable Link • E2EE Active',
             avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
             isEncrypted: true,
             updatedAt: new Date().toISOString(),
@@ -94,6 +98,13 @@ export default function Home() {
             ]
           });
         }
+
+        // Show prompt to set friend's handle if new guest
+        setGuestPromptModal({
+          roomId: sharedRoomId,
+          friendName: ''
+        });
+
         setActiveConversationId(sharedRoomId);
         setIsMobileSidebarOpen(false);
         joinSocketRoom(sharedRoomId);
@@ -107,6 +118,21 @@ export default function Home() {
       getSocket(currentUser.id);
     }
   }, [currentUser?.id, setConversations, setActiveConversationId, setIsMobileSidebarOpen]);
+
+  const handleConfirmGuestName = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!guestPromptModal) return;
+
+    const name = guestPromptModal.friendName.trim() || `Friend_${Math.floor(Math.random() * 1000)}`;
+    setCurrentUser({
+      ...currentUser,
+      id: `usr_${Date.now()}`,
+      fullName: name,
+      username: name.toLowerCase().replace(/\s+/g, '_')
+    });
+
+    setGuestPromptModal(null);
+  };
 
   return (
     <main className="h-screen w-screen bg-slate-950 text-slate-100 flex overflow-hidden font-sans relative">
@@ -130,6 +156,52 @@ export default function Home() {
 
       {/* WebRTC Video / Voice Call Modal */}
       {activeCall && <CallModal />}
+
+      {/* Guest Name Setup Modal when joining via shared link */}
+      {guestPromptModal && (
+        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <form onSubmit={handleConfirmGuestName} className="max-w-md w-full glass-panel border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white shadow-glow">
+                <UserCheck className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-white">Join Encrypted Session</h3>
+                <p className="text-xs text-slate-400">Enter your name to start chatting live</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Your Display Name</label>
+              <input
+                type="text"
+                placeholder="e.g. Alex"
+                value={guestPromptModal.friendName}
+                onChange={(e) => setGuestPromptModal({ ...guestPromptModal, friendName: e.target.value })}
+                className="w-full bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-cyan-500/50"
+                autoFocus
+              />
+            </div>
+
+            <div className="pt-2 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setGuestPromptModal(null)}
+                className="flex-1 py-2.5 bg-slate-900 border border-slate-800 text-slate-400 font-semibold text-xs rounded-xl"
+              >
+                Skip as Guest
+              </button>
+              <button
+                type="submit"
+                className="flex-1 py-2.5 bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-bold text-xs rounded-xl shadow-glow flex items-center justify-center gap-1.5"
+              >
+                <span>Join Chat Room</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Safety Number Verification Dialog */}
       {safetyNumberModal.isOpen && (
