@@ -1,119 +1,97 @@
-import { Server as SocketIOServer, Socket } from 'socket.io';
-import { usersStore, messagesStore, MessageRecord, logSecurityEvent } from '../store/inMemoryStore';
+import { Server, Socket } from 'socket.io';
+import { logSecurityEvent } from '../store/inMemoryStore';
 
-export const registerSocketHandlers = (io: SocketIOServer) => {
+export const setupSocketHandler = (io: Server) => {
   io.on('connection', (socket: Socket) => {
-    const userId = socket.handshake.query.userId as string || 'usr_alice';
-    const deviceId = socket.handshake.query.deviceId as string || 'dev_alice_1';
+    const userId = socket.handshake.query.userId as string || 'anonymous_user';
+    const deviceId = socket.handshake.query.deviceId as string || 'dev_1';
 
-    // Update presence
-    const user = usersStore.get(userId);
-    if (user) {
-      user.isOnline = true;
-      user.lastSeen = new Date().toISOString();
-      io.emit('user_presence_changed', { userId, isOnline: true, lastSeen: user.lastSeen });
-    }
+    console.log(`📡 Socket Connected: User ${userId} (Device: ${deviceId}, SocketID: ${socket.id})`);
 
-    socket.join(`user_${userId}`);
+    // Join user's personal channel
+    socket.join(userId);
 
-    // Join conversation rooms
-    socket.on('join_conversation', (conversationId: string) => {
-      socket.join(`conv_${conversationId}`);
+    // Join custom shareable room
+    socket.on('join_room', (roomId: string) => {
+      socket.join(roomId);
+      console.log(`👥 User ${userId} joined room ${roomId}`);
+      socket.to(roomId).emit('peer_joined', { userId, deviceId, timestamp: new Date().toISOString() });
     });
 
-    // Leave conversation room
-    socket.on('leave_conversation', (conversationId: string) => {
-      socket.leave(`conv_${conversationId}`);
-    });
-
-    // Real-Time E2EE Message Send Event
-    socket.on('send_e2ee_message', (data: {
+    // Handle E2EE Ciphertext Message Relay
+    socket.on('new_e2ee_message', (data: {
       conversationId: string;
-      messageType: 'TEXT' | 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT' | 'VOICE_NOTE' | 'POLL';
+      messageId: string;
+      senderId: string;
       ciphertext: string;
       iv: string;
-      authTag?: string;
       ephemeralPublicKey?: string;
-      disappearingDuration?: number;
-      replyToMessageId?: string;
+      messageType?: string;
+      fileUrl?: string;
+      fileName?: string;
+      fileSize?: string;
     }) => {
-      const msgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-      const newMsg: MessageRecord = {
-        id: msgId,
+      console.log(`🔒 E2EE Message Relay in ${data.conversationId} from ${data.senderId}`);
+      
+      // Relay to all sockets in the conversation room
+      io.to(data.conversationId).emit('receive_e2ee_message', data);
+      socket.broadcast.emit('receive_e2ee_message', data);
+
+      logSecurityEvent(userId, 'CIPHERTEXT_RELAYED', {
         conversationId: data.conversationId,
-        senderId: userId,
-        senderDeviceId: deviceId,
-        messageType: data.messageType || 'TEXT',
-        ciphertext: data.ciphertext,
-        iv: data.iv,
-        authTag: data.authTag,
-        ephemeralPublicKey: data.ephemeralPublicKey,
-        disappearingDuration: data.disappearingDuration || 0,
-        replyToMessageId: data.replyToMessageId,
-        reactions: [],
-        createdAt: new Date().toISOString()
-      };
-
-      let msgs = messagesStore.get(data.conversationId);
-      if (!msgs) {
-        msgs = [];
-        messagesStore.set(data.conversationId, msgs);
-      }
-      msgs.push(newMsg);
-
-      // Broadcast to room
-      io.to(`conv_${data.conversationId}`).emit('new_e2ee_message', newMsg);
-      logSecurityEvent(userId, 'SOCKET_E2EE_MESSAGE_RELAYED', { msgId, convId: data.conversationId });
-    });
-
-    // Typing Indicators
-    socket.on('typing_start', ({ conversationId }: { conversationId: string }) => {
-      socket.to(`conv_${conversationId}`).emit('user_typing_start', { conversationId, userId });
-    });
-
-    socket.on('typing_stop', ({ conversationId }: { conversationId: string }) => {
-      socket.to(`conv_${conversationId}`).emit('user_typing_stop', { conversationId, userId });
-    });
-
-    // WebRTC Signaling Relay
-    socket.on('call_offer', ({ targetUserId, conversationId, sdpOffer, type }: any) => {
-      socket.to(`user_${targetUserId}`).emit('call_offer_received', {
-        initiatorId: userId,
-        conversationId,
-        sdpOffer,
-        type: type || 'VIDEO'
+        messageId: data.messageId
       });
     });
 
-    socket.on('call_answer', ({ targetUserId, sdpAnswer }: any) => {
-      socket.to(`user_${targetUserId}`).emit('call_answer_received', {
-        responderId: userId,
-        sdpAnswer
+    // Handle WebRTC Call Signaling (Video & Voice)
+    socket.on('call_offer', (data: { toUserId: string; offer: any; callType: string; conversationId: string }) => {
+      socket.to(data.toUserId).emit('incoming_call_offer', {
+        fromUserId: userId,
+        offer: data.offer,
+        callType: data.callType,
+        conversationId: data.conversationId
+      });
+      socket.broadcast.emit('incoming_call_offer', {
+        fromUserId: userId,
+        offer: data.offer,
+        callType: data.callType,
+        conversationId: data.conversationId
       });
     });
 
-    socket.on('call_ice_candidate', ({ targetUserId, candidate }: any) => {
-      socket.to(`user_${targetUserId}`).emit('call_ice_candidate_received', {
-        senderId: userId,
-        candidate
+    socket.on('call_answer', (data: { toUserId: string; answer: any; conversationId: string }) => {
+      socket.to(data.toUserId).emit('call_answered', {
+        fromUserId: userId,
+        answer: data.answer,
+        conversationId: data.conversationId
+      });
+      socket.broadcast.emit('call_answered', {
+        fromUserId: userId,
+        answer: data.answer,
+        conversationId: data.conversationId
       });
     });
 
-    socket.on('call_end', ({ targetUserId, conversationId }: any) => {
-      if (targetUserId) {
-        socket.to(`user_${targetUserId}`).emit('call_ended', { conversationId, endedBy: userId });
-      } else if (conversationId) {
-        socket.to(`conv_${conversationId}`).emit('call_ended', { conversationId, endedBy: userId });
-      }
+    socket.on('call_ice_candidate', (data: { toUserId: string; candidate: any }) => {
+      socket.to(data.toUserId).emit('remote_ice_candidate', {
+        fromUserId: userId,
+        candidate: data.candidate
+      });
+      socket.broadcast.emit('remote_ice_candidate', {
+        fromUserId: userId,
+        candidate: data.candidate
+      });
     });
 
-    // Disconnect Handler
+    socket.on('call_end', (data: { conversationId: string }) => {
+      io.to(data.conversationId).emit('call_ended', { fromUserId: userId });
+      socket.broadcast.emit('call_ended', { fromUserId: userId });
+    });
+
     socket.on('disconnect', () => {
-      if (user) {
-        user.isOnline = false;
-        user.lastSeen = new Date().toISOString();
-        io.emit('user_presence_changed', { userId, isOnline: false, lastSeen: user.lastSeen });
-      }
+      console.log(`🔌 Socket Disconnected: ${socket.id} (User: ${userId})`);
     });
   });
 };
+
+export const registerSocketHandlers = setupSocketHandler;

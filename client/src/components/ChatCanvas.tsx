@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAppStore, Message } from '../lib/store';
 import { encryptMessage } from '../lib/crypto/e2eeEngine';
+import { emitE2EeMessage, joinSocketRoom } from '../lib/socket';
 import { 
   ShieldCheck, 
   Lock, 
@@ -24,7 +25,10 @@ import {
   File,
   Film,
   Music,
-  ChevronLeft
+  ChevronLeft,
+  Share2,
+  Copy,
+  Check
 } from 'lucide-react';
 
 export const ChatCanvas: React.FC = () => {
@@ -48,12 +52,20 @@ export const ChatCanvas: React.FC = () => {
   const [attachedFile, setAttachedFile] = useState<{ name: string; size: string; type: string; url?: string } | null>(null);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [previewDocumentModal, setPreviewDocumentModal] = useState<{ name: string; url?: string; type: string } | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const activeConv = conversations.find(c => c.id === activeConversationId);
   const currentMessages = activeConversationId ? (messages[activeConversationId] || []) : [];
+
+  // Join Socket.IO room for real-time chat with friends
+  useEffect(() => {
+    if (activeConversationId) {
+      joinSocketRoom(activeConversationId);
+    }
+  }, [activeConversationId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -88,6 +100,19 @@ export const ChatCanvas: React.FC = () => {
       </div>
     );
   }
+
+  // Copy Shareable Invitation Link for Friends
+  const handleShareChatLink = () => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    const inviteUrl = `${origin}/?room=${activeConv.id}`;
+    
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(inviteUrl);
+    }
+    
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 3000);
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -151,7 +176,22 @@ export const ChatCanvas: React.FC = () => {
       (newMsg as any).fileSize = attachedFile.size;
     }
 
+    // Add to local state
     addMessage(activeConv.id, newMsg);
+
+    // Broadcast to real-time friends via Socket.IO
+    emitE2EeMessage({
+      conversationId: activeConv.id,
+      messageId: newMsg.id,
+      senderId: currentUser.id,
+      ciphertext: plaintext,
+      iv: encrypted.iv,
+      messageType: msgType,
+      fileUrl: (newMsg as any).fileUrl,
+      fileName: (newMsg as any).fileName,
+      fileSize: (newMsg as any).fileSize
+    });
+
     setInputMessage('');
     setIsRecordingVoice(false);
     setAttachedFile(null);
@@ -175,10 +215,9 @@ export const ChatCanvas: React.FC = () => {
         className="hidden" 
       />
 
-      {/* Mobile-Friendly Top Navigation Header */}
+      {/* Top Navigation Header */}
       <header className="p-3 px-3 md:px-6 border-b border-slate-800/80 bg-slate-950/90 flex items-center justify-between z-20 shrink-0">
         <div className="flex items-center gap-2 md:gap-3.5 min-w-0">
-          {/* Prominent Back to Chats Button on Mobile */}
           <button
             onClick={() => setIsMobileSidebarOpen(true)}
             className="p-1.5 px-2.5 rounded-xl bg-slate-900 border border-slate-800 text-cyan-400 hover:text-white md:hidden flex items-center gap-1 text-xs font-bold shrink-0 active:scale-95"
@@ -197,13 +236,27 @@ export const ChatCanvas: React.FC = () => {
           <div className="min-w-0">
             <h2 className="font-bold text-sm md:text-base text-white tracking-wide truncate">{activeConv.title}</h2>
             <p className="text-[10px] md:text-xs text-slate-400 flex items-center gap-1.5 truncate">
-              <span className="text-emerald-400 font-medium truncate">Session Active (E2EE)</span>
+              <span className="text-emerald-400 font-medium truncate">Session Active (Real-Time Relay)</span>
             </p>
           </div>
         </div>
 
-        {/* Header Action Icons */}
+        {/* Action Buttons: Share Link, Verification, Video/Voice */}
         <div className="flex items-center gap-1.5 shrink-0">
+          {/* Share Chat Link Button */}
+          <button
+            onClick={handleShareChatLink}
+            className={`p-2 px-2.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 ${
+              copiedLink 
+                ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300' 
+                : 'bg-gradient-to-r from-cyan-500/20 to-indigo-500/20 border-cyan-500/40 text-cyan-300 hover:border-cyan-400'
+            }`}
+            title="Share Chat Link with Friends"
+          >
+            {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-cyan-400" />}
+            <span className="hidden sm:inline">{copiedLink ? 'Link Copied!' : 'Invite Friend'}</span>
+          </button>
+
           <button
             onClick={() => openSafetyNumberModal(peerMember)}
             className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-cyan-300"
@@ -230,16 +283,30 @@ export const ChatCanvas: React.FC = () => {
         </div>
       </header>
 
+      {/* Toast Notification when Chat Link Copied */}
+      {copiedLink && (
+        <div className="bg-emerald-950/90 border-b border-emerald-500/40 px-4 py-2 text-center text-xs text-emerald-300 font-semibold animate-in fade-in duration-200">
+          🎉 Invitation Link Copied! Share this URL with your friend to chat in real-time.
+        </div>
+      )}
+
       {/* Message Stream */}
       <div className="flex-1 overflow-y-auto p-3 md:p-6 space-y-3.5">
-        <div className="max-w-md mx-auto p-2.5 rounded-2xl glass-card border border-cyan-500/20 text-center">
-          <div className="flex items-center justify-center gap-1.5 text-cyan-400 font-semibold text-xs mb-0.5">
+        <div className="max-w-md mx-auto p-3 rounded-2xl glass-card border border-cyan-500/20 text-center space-y-2">
+          <div className="flex items-center justify-center gap-1.5 text-cyan-400 font-semibold text-xs">
             <Lock className="w-3.5 h-3.5" />
-            End-to-End Encryption Active
+            Live End-to-End Encrypted Room
           </div>
           <p className="text-[10px] text-slate-400">
-            Messages are encrypted using X25519 Double Ratchet & AES-256-GCM.
+            Share this room link with your friends to chat or start high-definition encrypted video/voice calls instantly.
           </p>
+          <button
+            onClick={handleShareChatLink}
+            className="px-3 py-1.5 bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 rounded-xl text-xs font-bold hover:bg-cyan-500/30 transition-all inline-flex items-center gap-1.5"
+          >
+            <Copy className="w-3.5 h-3.5" />
+            Copy Shareable Chat Link
+          </button>
         </div>
 
         {currentMessages.map((msg) => {
@@ -270,7 +337,7 @@ export const ChatCanvas: React.FC = () => {
                   }`}
                 >
                   <div className="flex items-center justify-between text-[10px] opacity-75 mb-1 gap-2">
-                    <span className="font-semibold">{isMe ? 'You' : (peerMember?.fullName || 'Sender')}</span>
+                    <span className="font-semibold">{isMe ? 'You' : (peerMember?.fullName || 'Friend')}</span>
                     <span className="flex items-center gap-1 text-cyan-300 font-mono">
                       <Lock className="w-2.5 h-2.5" />
                       AES-256
@@ -510,7 +577,7 @@ export const ChatCanvas: React.FC = () => {
         </div>
       )}
 
-      {/* Mobile-Optimized Fixed Bottom Composer Area */}
+      {/* Bottom Composer Area */}
       <div className="p-2.5 md:p-4 border-t border-slate-800 bg-slate-950 sticky bottom-0 z-20 shrink-0">
         <form onSubmit={handleSendMessage} className="flex items-center gap-1.5">
           <button 

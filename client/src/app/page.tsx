@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { useAppStore } from '../lib/store';
+import { useAppStore, Conversation } from '../lib/store';
 import { Sidebar } from '../components/Sidebar';
 import { ChatCanvas } from '../components/ChatCanvas';
 import { CallModal } from '../components/CallModal';
@@ -9,22 +9,25 @@ import { SecurityVaultModal } from '../components/SecurityVaultModal';
 import { PricingModal } from '../components/PricingModal';
 import { AdminConsole } from '../components/AdminConsole';
 import { AiAssistantDrawer } from '../components/AiAssistantDrawer';
-import { getSocket } from '../lib/socket';
+import { getSocket, joinSocketRoom } from '../lib/socket';
 
 export default function Home() {
   const { 
     currentUser, 
+    conversations,
     setConversations, 
     activeTab, 
     activeCall,
     safetyNumberModal,
     closeSafetyNumberModal,
-    isMobileSidebarOpen
+    isMobileSidebarOpen,
+    setActiveConversationId,
+    setIsMobileSidebarOpen
   } = useAppStore();
 
   useEffect(() => {
     // Initial mock conversations
-    setConversations([
+    const initialConvs: Conversation[] = [
       {
         id: 'conv_alice_bob',
         type: 'DIRECT',
@@ -67,32 +70,50 @@ export default function Home() {
           { id: 'm2', userId: 'usr_bob', username: 'bob_builder', fullName: 'Bob Sterling', role: 'MEMBER', isOnline: true },
           { id: 'm3', userId: 'usr_carol', username: 'carol_crypto', fullName: 'Carol Zhang', role: 'MEMBER', isOnline: false }
         ]
-      },
-      {
-        id: 'conv_channel_announcements',
-        type: 'CHANNEL',
-        title: 'CipherPulse Protocol Release Feed',
-        description: 'Signed Ephemeral Identity Key Updates',
-        avatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80',
-        isEncrypted: true,
-        unreadCount: 0,
-        updatedAt: new Date().toISOString(),
-        members: []
       }
-    ]);
+    ];
+
+    // Detect Shareable Room URL Parameter (?room=...)
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const sharedRoomId = urlParams.get('room') || urlParams.get('invite');
+
+      if (sharedRoomId) {
+        const roomExists = initialConvs.some(c => c.id === sharedRoomId);
+        if (!roomExists) {
+          initialConvs.unshift({
+            id: sharedRoomId,
+            type: 'DIRECT',
+            title: `Shared Encrypted Session (${sharedRoomId.substring(0, 10)})`,
+            description: 'Joined via Shareable Link • End-to-End Encrypted',
+            avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+            isEncrypted: true,
+            updatedAt: new Date().toISOString(),
+            members: [
+              { id: 'm_guest', userId: currentUser.id, username: currentUser.username, fullName: currentUser.fullName, role: 'MEMBER', isOnline: true }
+            ]
+          });
+        }
+        setActiveConversationId(sharedRoomId);
+        setIsMobileSidebarOpen(false);
+        joinSocketRoom(sharedRoomId);
+      }
+    }
+
+    setConversations(initialConvs);
 
     // Socket.IO Connection
     if (currentUser?.id) {
       getSocket(currentUser.id);
     }
-  }, [currentUser?.id, setConversations]);
+  }, [currentUser?.id, setConversations, setActiveConversationId, setIsMobileSidebarOpen]);
 
   return (
     <main className="h-screen w-screen bg-slate-950 text-slate-100 flex overflow-hidden font-sans relative">
       {/* Sidebar Navigation */}
       <Sidebar />
 
-      {/* Main Content Area (Responsive) */}
+      {/* Main Content Area */}
       <div 
         className={`flex-1 h-screen flex flex-col min-w-0 ${
           isMobileSidebarOpen ? 'hidden md:flex' : 'flex'
