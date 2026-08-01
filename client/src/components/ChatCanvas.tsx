@@ -15,21 +15,16 @@ import {
   Smile, 
   Sparkles, 
   CheckCheck, 
-  Trash2, 
   FileText, 
   Play, 
   Pause,
-  BarChart2, 
-  MoreVertical,
   QrCode,
   X,
   Download,
-  Image as ImageIcon,
   File,
   Film,
   Music,
-  ChevronLeft,
-  Menu
+  ChevronLeft
 } from 'lucide-react';
 
 export const ChatCanvas: React.FC = () => {
@@ -76,19 +71,19 @@ export const ChatCanvas: React.FC = () => {
 
   if (!activeConv) {
     return (
-      <div className="flex-1 h-screen flex flex-col items-center justify-center text-center p-8">
+      <div className="flex-1 h-[100dvh] flex flex-col items-center justify-center text-center p-6 bg-slate-950">
         <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-4 shadow-glow">
           <ShieldCheck className="w-8 h-8" />
         </div>
-        <h2 className="text-xl font-bold text-white mb-2">Select an Encrypted Conversation</h2>
-        <p className="text-sm text-slate-400 max-w-md">
-          All messaging sessions use client-side X25519 Double Ratchet encryption. No plaintext ever leaves your browser.
+        <h2 className="text-xl font-bold text-white mb-2">Select an Encrypted Chat</h2>
+        <p className="text-xs md:text-sm text-slate-400 max-w-md">
+          All messaging sessions use client-side X25519 Double Ratchet encryption.
         </p>
         <button
           onClick={() => setIsMobileSidebarOpen(true)}
-          className="mt-4 px-4 py-2 bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 rounded-xl text-xs font-bold md:hidden"
+          className="mt-6 px-6 py-3 bg-gradient-to-r from-cyan-500 to-indigo-600 text-white border border-cyan-400/40 rounded-xl text-xs font-bold shadow-glow md:hidden active:scale-95"
         >
-          View Conversations List
+          ← Open Conversations Menu
         </button>
       </div>
     );
@@ -172,7 +167,7 @@ export const ChatCanvas: React.FC = () => {
   ];
 
   return (
-    <div className="flex-1 h-screen flex flex-col glass-panel relative overflow-hidden">
+    <div className="flex-1 h-[100dvh] flex flex-col glass-panel relative overflow-hidden bg-slate-950">
       <input 
         type="file" 
         ref={fileInputRef} 
@@ -180,53 +175,46 @@ export const ChatCanvas: React.FC = () => {
         className="hidden" 
       />
 
-      {/* Top Header */}
-      <header className="p-3.5 px-4 md:px-6 border-b border-slate-800/60 bg-slate-950/60 flex items-center justify-between z-10">
-        <div className="flex items-center gap-2 md:gap-3.5">
-          {/* Mobile Back Button to Conversation List */}
+      {/* Mobile-Friendly Top Navigation Header */}
+      <header className="p-3 px-3 md:px-6 border-b border-slate-800/80 bg-slate-950/90 flex items-center justify-between z-20 shrink-0">
+        <div className="flex items-center gap-2 md:gap-3.5 min-w-0">
+          {/* Prominent Back to Chats Button on Mobile */}
           <button
             onClick={() => setIsMobileSidebarOpen(true)}
-            className="p-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white md:hidden"
+            className="p-1.5 px-2.5 rounded-xl bg-slate-900 border border-slate-800 text-cyan-400 hover:text-white md:hidden flex items-center gap-1 text-xs font-bold shrink-0 active:scale-95"
             title="Back to Conversations"
           >
-            <ChevronLeft className="w-5 h-5 text-cyan-400" />
+            <ChevronLeft className="w-4 h-4" />
+            <span>Chats</span>
           </button>
 
           <img 
             src={activeConv.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'} 
             alt={activeConv.title} 
-            className="w-9 h-9 md:w-10 md:h-10 rounded-full object-cover ring-2 ring-cyan-500/40 shrink-0"
+            className="w-9 h-9 rounded-full object-cover ring-2 ring-cyan-500/40 shrink-0"
           />
+
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <h2 className="font-bold text-sm md:text-base text-white tracking-wide truncate">{activeConv.title}</h2>
-              <span className="hidden sm:flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 rounded-md shrink-0">
-                <Lock className="w-3 h-3 text-cyan-400" />
-                E2EE Active
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5 truncate">
-              <span>{activeConv.members.length} Members</span>
-              <span>•</span>
-              <span className="text-emerald-400 font-medium truncate">Session Active</span>
+            <h2 className="font-bold text-sm md:text-base text-white tracking-wide truncate">{activeConv.title}</h2>
+            <p className="text-[10px] md:text-xs text-slate-400 flex items-center gap-1.5 truncate">
+              <span className="text-emerald-400 font-medium truncate">Session Active (E2EE)</span>
             </p>
           </div>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-1.5 md:gap-2">
+        {/* Header Action Icons */}
+        <div className="flex items-center gap-1.5 shrink-0">
           <button
             onClick={() => openSafetyNumberModal(peerMember)}
-            className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-cyan-300 hover:border-cyan-500/40 transition-all flex items-center gap-1.5 text-xs font-medium"
+            className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-cyan-300"
             title="Verify Safety Numbers"
           >
             <QrCode className="w-4 h-4 text-cyan-400" />
-            <span className="hidden lg:inline">Verify Key</span>
           </button>
 
           <button
             onClick={() => startCall(activeConv.id, activeConv.title, 'AUDIO')}
-            className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-emerald-400 hover:border-emerald-500/40 transition-all"
+            className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-emerald-400"
             title="Start Encrypted Voice Call"
           >
             <Phone className="w-4 h-4 text-emerald-400" />
@@ -234,24 +222,23 @@ export const ChatCanvas: React.FC = () => {
 
           <button
             onClick={() => startCall(activeConv.id, activeConv.title, 'VIDEO')}
-            className="p-2 md:p-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-medium shadow-glow hover:opacity-95 transition-all flex items-center gap-1.5 text-xs"
+            className="p-2 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-medium shadow-glow active:scale-95"
             title="Start Encrypted Video Call"
           >
             <Video className="w-4 h-4" />
-            <span className="hidden sm:inline">Start Call</span>
           </button>
         </div>
       </header>
 
       {/* Message Stream */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
-        <div className="max-w-md mx-auto p-3 rounded-2xl glass-card border border-cyan-500/20 text-center">
-          <div className="flex items-center justify-center gap-1.5 text-cyan-400 font-semibold text-xs mb-1">
-            <Lock className="w-4 h-4" />
-            End-to-End Encryption Verified
+      <div className="flex-1 overflow-y-auto p-3 md:p-6 space-y-3.5">
+        <div className="max-w-md mx-auto p-2.5 rounded-2xl glass-card border border-cyan-500/20 text-center">
+          <div className="flex items-center justify-center gap-1.5 text-cyan-400 font-semibold text-xs mb-0.5">
+            <Lock className="w-3.5 h-3.5" />
+            End-to-End Encryption Active
           </div>
-          <p className="text-[11px] text-slate-400">
-            Messages & attachments in this chat are secured with Double Ratchet HKDF & AES-256-GCM.
+          <p className="text-[10px] text-slate-400">
+            Messages are encrypted using X25519 Double Ratchet & AES-256-GCM.
           </p>
         </div>
 
@@ -266,7 +253,7 @@ export const ChatCanvas: React.FC = () => {
               key={msg.id} 
               className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} group`}
             >
-              <div className="flex items-start gap-2 max-w-[90%] md:max-w-[70%]">
+              <div className="flex items-start gap-2 max-w-[92%] md:max-w-[70%]">
                 {!isMe && (
                   <img 
                     src={activeConv.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'} 
@@ -276,13 +263,13 @@ export const ChatCanvas: React.FC = () => {
                 )}
 
                 <div 
-                  className={`p-3 md:p-3.5 rounded-2xl shadow-lg relative ${
+                  className={`p-3 rounded-2xl shadow-lg relative ${
                     isMe 
                       ? 'bg-gradient-to-r from-cyan-600/90 to-indigo-600/90 text-white rounded-br-none border border-cyan-400/30' 
                       : 'glass-card text-slate-100 rounded-bl-none border border-slate-700/60'
                   }`}
                 >
-                  <div className="flex items-center justify-between text-[10px] opacity-75 mb-1.5 gap-2">
+                  <div className="flex items-center justify-between text-[10px] opacity-75 mb-1 gap-2">
                     <span className="font-semibold">{isMe ? 'You' : (peerMember?.fullName || 'Sender')}</span>
                     <span className="flex items-center gap-1 text-cyan-300 font-mono">
                       <Lock className="w-2.5 h-2.5" />
@@ -292,11 +279,11 @@ export const ChatCanvas: React.FC = () => {
 
                   {/* Playable Voice Note / Audio Player */}
                   {(msg.messageType === 'VOICE_NOTE' || msg.messageType === 'AUDIO') && (
-                    <div className="p-3 bg-slate-950/70 border border-cyan-500/30 rounded-xl space-y-2 min-w-[200px] md:min-w-[240px]">
+                    <div className="p-2.5 bg-slate-950/70 border border-cyan-500/30 rounded-xl space-y-2 min-w-[180px] sm:min-w-[240px]">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
                           <Music className="w-4 h-4 text-cyan-400" />
-                          <span className="text-xs font-semibold text-white">
+                          <span className="text-xs font-semibold text-white truncate max-w-[120px]">
                             {msg.messageType === 'VOICE_NOTE' ? 'Voice Note' : fileName}
                           </span>
                         </div>
@@ -306,7 +293,7 @@ export const ChatCanvas: React.FC = () => {
                       {fileUrl ? (
                         <audio controls src={fileUrl} className="w-full h-8 rounded-lg" />
                       ) : (
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
                           <button 
                             onClick={() => setPlayingAudioId(playingAudioId === msg.id ? null : msg.id)}
                             className="w-8 h-8 rounded-full bg-cyan-500 text-slate-950 flex items-center justify-center font-bold shrink-0 shadow-glow"
@@ -314,7 +301,7 @@ export const ChatCanvas: React.FC = () => {
                             {playingAudioId === msg.id ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
                           </button>
                           <div className="flex-1 flex items-end gap-1 h-5">
-                            {[40, 80, 50, 100, 70, 90, 60, 30, 85, 45, 95].map((h, i) => (
+                            {[40, 80, 50, 100, 70, 90, 60, 30, 85, 45].map((h, i) => (
                               <span 
                                 key={i} 
                                 className={`w-1 rounded-full transition-all ${playingAudioId === msg.id ? 'bg-cyan-400 animate-pulse' : 'bg-slate-700'}`} 
@@ -331,27 +318,27 @@ export const ChatCanvas: React.FC = () => {
                   {msg.messageType === 'VIDEO' && (
                     <div className="rounded-xl overflow-hidden border border-slate-700/80 bg-slate-950 max-w-xs space-y-1">
                       {fileUrl ? (
-                        <video controls src={fileUrl} className="w-full max-h-60 object-cover" />
+                        <video controls src={fileUrl} className="w-full max-h-56 object-cover" />
                       ) : (
-                        <div className="w-full h-40 bg-slate-900 flex flex-col items-center justify-center text-slate-400 gap-2">
+                        <div className="w-full h-36 bg-slate-900 flex flex-col items-center justify-center text-slate-400 gap-2">
                           <Film className="w-8 h-8 text-cyan-400" />
-                          <span className="text-xs font-semibold">Playable Encrypted Video</span>
+                          <span className="text-xs font-semibold">Playable Video</span>
                         </div>
                       )}
                       <p className="p-2 text-xs font-semibold text-slate-200 truncate">{fileName}</p>
                     </div>
                   )}
 
-                  {/* Viewable Document Preview Card */}
+                  {/* Document Preview Card */}
                   {msg.messageType === 'DOCUMENT' && (
-                    <div className="p-3 bg-slate-950/80 border border-slate-700/80 rounded-xl flex items-center justify-between gap-3 min-w-[200px] md:min-w-[240px] max-w-xs">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-300 shrink-0">
-                          <FileText className="w-5 h-5" />
+                    <div className="p-2.5 bg-slate-950/80 border border-slate-700/80 rounded-xl flex items-center justify-between gap-3 min-w-[180px] max-w-xs">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-300 shrink-0">
+                          <FileText className="w-4 h-4" />
                         </div>
                         <div className="min-w-0">
                           <h4 className="text-xs font-bold text-white truncate">{fileName}</h4>
-                          <p className="text-[10px] text-slate-400">{fileSize} • Document</p>
+                          <p className="text-[10px] text-slate-400">{fileSize}</p>
                         </div>
                       </div>
 
@@ -359,20 +346,20 @@ export const ChatCanvas: React.FC = () => {
                         {fileUrl && (
                           <button
                             onClick={() => setPreviewDocumentModal({ name: fileName, url: fileUrl, type: 'document' })}
-                            className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-cyan-400 hover:text-white"
+                            className="p-1 rounded-lg bg-slate-900 border border-slate-800 text-cyan-400"
                             title="Preview Document"
                           >
-                            <FileText className="w-4 h-4" />
+                            <FileText className="w-3.5 h-3.5" />
                           </button>
                         )}
                         {fileUrl && (
                           <a
                             href={fileUrl}
                             download={fileName}
-                            className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-purple-400 hover:text-white"
+                            className="p-1 rounded-lg bg-slate-900 border border-slate-800 text-purple-400"
                             title="Download Document"
                           >
-                            <Download className="w-4 h-4" />
+                            <Download className="w-3.5 h-3.5" />
                           </a>
                         )}
                       </div>
@@ -385,13 +372,13 @@ export const ChatCanvas: React.FC = () => {
                       <img 
                         src={fileUrl || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80'} 
                         alt="Image Attachment" 
-                        className="w-full max-h-60 object-cover cursor-pointer hover:opacity-95 transition-all"
+                        className="w-full max-h-56 object-cover cursor-pointer"
                         onClick={() => setPreviewDocumentModal({ name: fileName, url: fileUrl || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80', type: 'image' })}
                       />
                       <div className="p-2 flex items-center justify-between text-xs text-slate-300">
                         <span className="truncate">{fileName}</span>
                         {fileUrl && (
-                          <a href={fileUrl} download={fileName} className="text-cyan-400 hover:text-white">
+                          <a href={fileUrl} download={fileName} className="text-cyan-400">
                             <Download className="w-3.5 h-3.5" />
                           </a>
                         )}
@@ -407,16 +394,10 @@ export const ChatCanvas: React.FC = () => {
                   )}
 
                   {/* Message Footer */}
-                  <div className="flex items-center justify-end gap-1.5 text-[10px] opacity-70 mt-1.5">
+                  <div className="flex items-center justify-end gap-1 text-[10px] opacity-70 mt-1">
                     <span>
                       {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                    {msg.disappearingDuration ? (
-                      <span className="flex items-center gap-0.5 text-purple-300">
-                        <Clock className="w-3 h-3" />
-                        {Math.floor(msg.disappearingDuration / 60)}m
-                      </span>
-                    ) : null}
                     {isMe && <CheckCheck className="w-3.5 h-3.5 text-cyan-300" />}
                   </div>
                 </div>
@@ -427,35 +408,31 @@ export const ChatCanvas: React.FC = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Interactive Document / Media Lightbox Modal */}
+      {/* Interactive Lightbox Modal */}
       {previewDocumentModal && (
-        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 md:p-6 select-none animate-in fade-in duration-200">
-          <div className="max-w-3xl w-full glass-panel border border-slate-800 rounded-3xl p-4 md:p-6 shadow-2xl relative space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="font-bold text-xs md:text-sm text-white flex items-center gap-2 truncate">
-                <FileText className="w-4 h-4 text-cyan-400 shrink-0" />
-                <span className="truncate">{previewDocumentModal.name}</span>
-              </h3>
+        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 select-none">
+          <div className="max-w-2xl w-full glass-panel border border-slate-800 rounded-3xl p-4 shadow-2xl relative space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <h3 className="font-bold text-xs text-white truncate">{previewDocumentModal.name}</h3>
               <button onClick={() => setPreviewDocumentModal(null)} className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="max-h-[65vh] overflow-auto flex items-center justify-center bg-slate-950 p-2 md:p-4 rounded-2xl border border-slate-900">
+            <div className="max-h-[50vh] overflow-auto flex items-center justify-center bg-slate-950 p-2 rounded-xl">
               {previewDocumentModal.type === 'image' ? (
-                <img src={previewDocumentModal.url} alt="Document View" className="max-h-[55vh] object-contain rounded-xl" />
+                <img src={previewDocumentModal.url} alt="Document View" className="max-h-[45vh] object-contain rounded-lg" />
               ) : (
-                <iframe src={previewDocumentModal.url} className="w-full h-[45vh] rounded-xl border border-slate-800" />
+                <iframe src={previewDocumentModal.url} className="w-full h-[40vh] rounded-lg border border-slate-800" />
               )}
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2">
+            <div className="flex items-center justify-end pt-1">
               <a
                 href={previewDocumentModal.url}
                 download={previewDocumentModal.name}
-                className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-bold text-xs rounded-xl shadow-glow transition-all flex items-center gap-2"
+                className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-bold text-xs rounded-xl shadow-glow"
               >
-                <Download className="w-4 h-4" />
                 Download File
               </a>
             </div>
@@ -465,7 +442,7 @@ export const ChatCanvas: React.FC = () => {
 
       {/* Emoji Picker Popover */}
       {showEmojiPicker && (
-        <div className="absolute bottom-20 left-2 md:left-4 z-50 w-72 glass-panel border border-slate-800 rounded-2xl p-3 shadow-2xl space-y-3 animate-in fade-in duration-150">
+        <div className="absolute bottom-16 left-2 right-2 md:left-4 md:w-72 z-50 glass-panel border border-slate-800 rounded-2xl p-3 shadow-2xl space-y-3">
           <div className="flex items-center justify-between border-b border-slate-800 pb-2">
             <span className="text-xs font-bold text-white flex items-center gap-1.5">
               <Smile className="w-4 h-4 text-cyan-400" />
@@ -476,7 +453,7 @@ export const ChatCanvas: React.FC = () => {
             </button>
           </div>
 
-          <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-44 overflow-y-auto">
             {emojiCategories.map((cat, idx) => (
               <div key={idx}>
                 <div className="text-[10px] font-semibold text-slate-400 mb-1">{cat.label}</div>
@@ -486,7 +463,7 @@ export const ChatCanvas: React.FC = () => {
                       key={emoji}
                       type="button"
                       onClick={() => handleInsertEmoji(emoji)}
-                      className="p-1.5 rounded-lg hover:bg-slate-800 text-lg transition-all text-center"
+                      className="p-1.5 rounded-lg hover:bg-slate-800 text-lg text-center active:scale-95"
                     >
                       {emoji}
                     </button>
@@ -500,18 +477,14 @@ export const ChatCanvas: React.FC = () => {
 
       {/* Attachment Preview Chip */}
       {attachedFile && (
-        <div className="px-4 md:px-6 py-2 bg-slate-950/60 border-t border-slate-800/60 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {attachedFile.url && attachedFile.type.startsWith('image/') ? (
-              <img src={attachedFile.url} alt="Preview" className="w-10 h-10 rounded-lg object-cover ring-1 ring-cyan-500/40 shrink-0" />
-            ) : (
-              <div className="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
-                <File className="w-5 h-5" />
-              </div>
-            )}
+        <div className="px-4 py-2 bg-slate-950 border-t border-slate-800 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
+              <File className="w-4 h-4" />
+            </div>
             <div className="min-w-0">
-              <h4 className="text-xs font-semibold text-white truncate max-w-xs">{attachedFile.name}</h4>
-              <p className="text-[10px] text-cyan-300 font-mono">{attachedFile.size} • Attachment</p>
+              <h4 className="text-xs font-semibold text-white truncate">{attachedFile.name}</h4>
+              <p className="text-[10px] text-cyan-300 font-mono">{attachedFile.size}</p>
             </div>
           </div>
 
@@ -523,14 +496,13 @@ export const ChatCanvas: React.FC = () => {
 
       {/* AI Smart Replies Bar */}
       {showSmartReplies && !attachedFile && (
-        <div className="px-4 md:px-6 py-2 bg-slate-950/40 border-t border-slate-800/40 flex items-center gap-2 overflow-x-auto">
-          <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
-          <span className="text-[11px] font-semibold text-slate-400 shrink-0">Smart Replies:</span>
-          {["Got it! Checking keys 🔐", "Let's join a WebRTC video call 📹", "Audit log verified 👍"].map((reply, i) => (
+        <div className="px-3 py-1.5 bg-slate-950/80 border-t border-slate-800/60 flex items-center gap-2 overflow-x-auto shrink-0">
+          <Sparkles className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+          {["Got it! 🔐", "Join video call 📹", "Audit log verified 👍"].map((reply, i) => (
             <button
               key={i}
               onClick={() => handleSendMessage(undefined, reply)}
-              className="px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs text-slate-300 hover:text-cyan-300 hover:border-cyan-500/40 transition-all shrink-0"
+              className="px-2.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-[11px] text-slate-300 hover:text-cyan-300 shrink-0 active:scale-95"
             >
               {reply}
             </button>
@@ -538,13 +510,13 @@ export const ChatCanvas: React.FC = () => {
         </div>
       )}
 
-      {/* Rich Composer Area */}
-      <div className="p-3 md:p-4 border-t border-slate-800/60 bg-slate-950/80">
-        <form onSubmit={handleSendMessage} className="flex items-center gap-1.5 md:gap-2">
+      {/* Mobile-Optimized Fixed Bottom Composer Area */}
+      <div className="p-2.5 md:p-4 border-t border-slate-800 bg-slate-950 sticky bottom-0 z-20 shrink-0">
+        <form onSubmit={handleSendMessage} className="flex items-center gap-1.5">
           <button 
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="p-2 md:p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-cyan-400 hover:border-cyan-500/40 transition-all shrink-0"
+            className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-cyan-400 shrink-0 active:scale-95"
             title="Attach File"
           >
             <Paperclip className="w-4 h-4 md:w-5 md:h-5" />
@@ -553,10 +525,10 @@ export const ChatCanvas: React.FC = () => {
           <button 
             type="button"
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            className={`p-2 md:p-2.5 rounded-xl border transition-all shrink-0 ${
+            className={`p-2.5 rounded-xl border transition-all shrink-0 active:scale-95 ${
               showEmojiPicker 
                 ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-300' 
-                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-yellow-400'
+                : 'bg-slate-900 border-slate-800 text-slate-400'
             }`}
             title="Emoji Picker"
           >
@@ -566,10 +538,10 @@ export const ChatCanvas: React.FC = () => {
           <button 
             type="button"
             onClick={() => setIsRecordingVoice(!isRecordingVoice)}
-            className={`p-2 md:p-2.5 rounded-xl border transition-all shrink-0 ${
+            className={`p-2.5 rounded-xl border transition-all shrink-0 active:scale-95 ${
               isRecordingVoice 
                 ? 'bg-rose-500/20 border-rose-500/50 text-rose-400 animate-pulse' 
-                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-purple-400'
+                : 'bg-slate-900 border-slate-800 text-slate-400'
             }`}
             title="Record Voice Note"
           >
@@ -577,15 +549,15 @@ export const ChatCanvas: React.FC = () => {
           </button>
 
           {isRecordingVoice ? (
-            <div className="flex-1 p-2 px-3 bg-rose-950/30 border border-rose-500/40 rounded-xl flex items-center justify-between text-xs text-rose-300 min-w-0">
-              <span className="flex items-center gap-2 font-medium truncate">
-                <span className="w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping shrink-0"></span>
-                Recording Voice... ({voiceTimer}s)
+            <div className="flex-1 p-2 px-3 bg-rose-950/40 border border-rose-500/40 rounded-xl flex items-center justify-between text-xs text-rose-300 min-w-0">
+              <span className="flex items-center gap-1.5 font-medium truncate">
+                <span className="w-2 h-2 bg-rose-500 rounded-full animate-ping shrink-0"></span>
+                Recording ({voiceTimer}s)
               </span>
               <button 
                 type="button" 
                 onClick={() => setIsRecordingVoice(false)}
-                className="text-rose-400 hover:text-white shrink-0"
+                className="text-rose-400 p-1"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -593,16 +565,16 @@ export const ChatCanvas: React.FC = () => {
           ) : (
             <input
               type="text"
-              placeholder="Type message..."
+              placeholder="Type encrypted message..."
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
-              className="flex-1 bg-slate-900 border border-slate-800 text-xs md:text-sm text-white placeholder-slate-500 px-3 md:px-4 py-2 md:py-2.5 rounded-xl focus:outline-none focus:border-cyan-500/60 transition-all min-w-0"
+              className="flex-1 bg-slate-900 border border-slate-800 text-xs md:text-sm text-white placeholder-slate-500 px-3 py-2.5 rounded-xl focus:outline-none focus:border-cyan-500/60 min-w-0"
             />
           )}
 
           <button
             type="submit"
-            className="p-2 md:p-2.5 px-3 md:px-5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-medium shadow-glow hover:opacity-95 transition-all flex items-center gap-2 shrink-0"
+            className="p-2.5 px-3.5 md:px-5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-medium shadow-glow active:scale-95 flex items-center gap-1.5 shrink-0"
           >
             <Send className="w-4 h-4" />
             <span className="hidden sm:inline text-xs font-semibold">Send</span>
