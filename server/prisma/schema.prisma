@@ -1,0 +1,238 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  ADMIN
+  SUPERADMIN
+}
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+  BUSINESS
+  ENTERPRISE
+}
+
+enum ConversationType {
+  DIRECT
+  GROUP
+  CHANNEL
+  COMMUNITY
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+  VOICE_NOTE
+  POLL
+  LOCATION
+  CONTACT
+}
+
+enum CallType {
+  AUDIO
+  VIDEO
+}
+
+enum CallStatus {
+  ONGOING
+  COMPLETED
+  MISSED
+  DECLINED
+}
+
+model User {
+  id              String           @id @default(uuid())
+  email           String           @unique
+  username        String           @unique
+  fullName        String
+  avatar          String?
+  statusMessage   String?          @default("Using CipherPulse E2EE")
+  passwordHash    String
+  role            Role             @default(USER)
+  plan            SubscriptionPlan @default(FREE)
+  isMfaEnabled    Boolean          @default(false)
+  isOnline        Boolean          @default(false)
+  lastSeen        DateTime         @default(now())
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  devices         Device[]
+  memberships     Member[]
+  sentMessages    Message[]        @relation("SentMessages")
+  reactions       Reaction[]
+  initiatedCalls  CallLog[]        @relation("InitiatedCalls")
+  subscriptions   Subscription[]
+  auditLogs       AuditLog[]
+}
+
+model Device {
+  id             String         @id @default(uuid())
+  userId         String
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceName     String
+  registrationId Int
+  pushToken      String?
+  clientVersion  String         @default("1.0.0")
+  lastActive     DateTime       @default(now())
+  createdAt      DateTime       @default(now())
+
+  identityKey    IdentityKey?
+  signedPreKeys  SignedPreKey[]
+  oneTimePreKeys OneTimePreKey[]
+}
+
+model IdentityKey {
+  id                String   @id @default(uuid())
+  deviceId          String   @unique
+  device            Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  identityPublicKey String   // Ed25519 Base64
+  createdAt         DateTime @default(now())
+}
+
+model SignedPreKey {
+  id         String   @id @default(uuid())
+  deviceId   String
+  device     Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  keyId      Int
+  publicKey  String   // X25519 Base64
+  signature  String   // Ed25519 Signature Base64
+  createdAt  DateTime @default(now())
+}
+
+model OneTimePreKey {
+  id        String   @id @default(uuid())
+  deviceId  String
+  device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  keyId     Int
+  publicKey String   // X25519 Base64
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Conversation {
+  id             String           @id @default(uuid())
+  type           ConversationType @default(DIRECT)
+  title          String?
+  description    String?
+  avatar         String?
+  isEncrypted    Boolean          @default(true)
+  createdById    String
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  members        Member[]
+  messages       Message[]
+  callLogs       CallLog[]
+}
+
+model Member {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           MemberRole   @default(MEMBER)
+  senderKeyChain String?      // Encrypted Sender Key state for group chats
+  joinedAt       DateTime     @default(now())
+}
+
+model Message {
+  id                   String       @id @default(uuid())
+  conversationId       String
+  conversation         Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId             String
+  sender               User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  senderDeviceId       String?
+  messageType          MessageType  @default(TEXT)
+  ciphertext           String       // E2EE AES-GCM Encrypted Payload (Base64)
+  iv                   String       // AES-GCM Initialization Vector (Base64)
+  authTag              String?      // Authentication Tag (Base64)
+  ephemeralPublicKey   String?      // Ratchet Ephemeral Public Key
+  disappearingDuration Int          @default(0) // Seconds (0 = Disabled)
+  expiresAt            DateTime?
+  isEdited             Boolean      @default(false)
+  isDeleted            Boolean      @default(false)
+  replyToMessageId     String?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  reactions            Reaction[]
+  attachments          Attachment[]
+}
+
+model Reaction {
+  id        String   @id @default(uuid())
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emoji     String
+  createdAt DateTime @default(now())
+}
+
+model Attachment {
+  id                   String   @id @default(uuid())
+  messageId            String
+  message              Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  filename             String
+  mimeType             String
+  sizeBytes            Int
+  encryptedFileKey     String   // AES Symmetric Key encrypted for recipients
+  fileIv               String
+  fileUrl              String   // S3 / R2 storage link or blob pointer
+  createdAt            DateTime @default(now())
+}
+
+model CallLog {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  initiatorId    String
+  initiator      User         @relation("InitiatedCalls", fields: [initiatorId], references: [id], onDelete: Cascade)
+  type           CallType     @default(VIDEO)
+  status         CallStatus   @default(COMPLETED)
+  durationSec    Int          @default(0)
+  startedAt      DateTime     @default(now())
+  endedAt        DateTime?
+}
+
+model Subscription {
+  id                   String           @id @default(uuid())
+  userId               String
+  user                 User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                 SubscriptionPlan @default(FREE)
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  status               String           @default("active")
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  ipAddress String?
+  userAgent String?
+  metadata  String?  // JSON string
+  createdAt DateTime @default(now())
+}

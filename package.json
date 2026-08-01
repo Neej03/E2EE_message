@@ -1,0 +1,13 @@
+{
+  "name": "cipherpulse-e2ee-saas-root",
+  "version": "1.0.0",
+  "description": "Production-Ready End-to-End Encrypted (E2EE) Messaging SaaS",
+  "scripts": {
+    "install:all": "npm --prefix server install && npm --prefix client install",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "build:all": "npm --prefix server run build && npm --prefix client run build",
+    "docker:up": "docker-compose up --build -d",
+    "docker:down": "docker-compose down"
+  }
+}
