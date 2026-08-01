@@ -15,7 +15,7 @@ export const askAiAssistant = async (req: Request, res: Response) => {
     } else if (lower.includes('summary') || lower.includes('summarize')) {
       responseText = `📌 **Conversation Executive Summary**:\n1. Key ratchets & pre-keys verified across 3 devices.\n2. Team confirmed zero-knowledge ciphertext routing.\n3. Sprint goals: Launch WebRTC encrypted calls & Stripe tier enforcement.`;
     } else if (lower.includes('code') || lower.includes('ratchet') || lower.includes('example')) {
-      responseText = ````typescript\n// Double Ratchet Root Key Step\nconst deriveKeys = async (rk: Uint8Array, dhOutput: Uint8Array) => {\n  const ikm = await crypto.subtle.importKey('raw', dhOutput, 'HKDF', false, ['deriveKey']);\n  return crypto.subtle.deriveKey({ name: 'HKDF', hash: 'SHA-256', salt: rk, info: new Uint8Array() }, ikm, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);\n};\n`````;
+      responseText = `// Double Ratchet Root Key Step\nconst deriveKeys = async (rk: Uint8Array, dhOutput: Uint8Array) => {\n  const ikm = await crypto.subtle.importKey('raw', dhOutput, 'HKDF', false, ['deriveKey']);\n  return crypto.subtle.deriveKey({ name: 'HKDF', hash: 'SHA-256', salt: rk, info: new Uint8Array() }, ikm, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);\n};`;
     } else {
       responseText = `🤖 **Cipher AI Assistant**: I am analyzing your request in zero-knowledge client memory. Your prompt: "${prompt}". Everything is encrypted using X25519 ratchets before reaching storage. How else can I assist your team today?`;
     }
